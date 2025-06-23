@@ -1,0 +1,662 @@
+---
+title: "MOVIE"
+author: "ANWAR ABU ALHUSSEIN"
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE, include=TRUE)
+```
+ 
+## Required packages
+###########################################################################
+###########################################################################
+###                                                                     ###
+###                    HEART FAILURE CLINICAL                           ###
+###                   PROJECT LINEAR REGRESSION                         ###
+###                                                                     ###
+###########################################################################
+###########################################################################
+###*                        Loading Packages
+###*                        ----------------
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+suppressPackageStartupMessages(library(tidyverse))
+suppressPackageStartupMessages(library(caret))
+suppressPackageStartupMessages(library(ggcorrplot))
+suppressPackageStartupMessages(library(Metrics))
+suppressPackageStartupMessages(library(corrplot))
+suppressPackageStartupMessages(library(bannerCommenter))
+suppressPackageStartupMessages(library(psych))
+suppressPackageStartupMessages(library(WVPlots))
+suppressPackageStartupMessages(library(PerformanceAnalytics))
+suppressPackageStartupMessages(library(car))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library(ggplot2))
+suppressPackageStartupMessages(library(outliers))
+suppressPackageStartupMessages(library(broom))
+suppressPackageStartupMessages(library(equatiomatic))
+```
+
+
+
+
+##===============================================================
+##                     Reading in the data                     ==
+##===============================================================
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+download.file("https://raw.githubusercontent.com/ABUALHUSSEIN/test/main/data/movie.csv",
+              destfile = "movie.csv")
+```
+
+##source(destfile)
+##ls()
+#======================================
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+setwd("C:/Users/WAFA/Desktop")
+movie <- read.csv("movie.csv",header=TRUE)
+View(movie)
+```
+
+## Missing Data. We are looking for the missing values
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+is.na(movie)
+sum(is.na(movie))
+```
+
+# Check the column names again, 
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+colnames(movie)
+```
+
+# The names contain dots, I will substitute 
+# each dot with underscore "_"
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+var_names <- gsub("\\.", "_", colnames(movie))
+var_names[14] <- "Aggregate_Followers"
+var_names[14]
+colnames(movie) <- var_names
+colnames(movie)
+View(movie)
+```
+
+
+
+#  Gives the name of columns that do not have data ------------------------
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+list_na <- colnames(movie)[ apply(movie, 2, anyNA) ]
+list_na
+```
+##===============================================================
+## Now we need to compute of the mean with the argument na.rm = TRUE. 
+#This argument is compulsory because the columns have missing data, 
+# and this tells R to ignore them.              
+##===============================================================
+
+# Create mean -------------------------------------------------------------
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+average_missing <- apply(movie[,colnames(movie) %in% list_na],
+                         2,
+                         mean,
+                         na.rm =  TRUE)
+average_missing
+
+```
+
+# Replace the NA Values ---------------------------------------------------
+##===============================================================
+##The verb mutate from the dplyr library is useful in creating a new variable.
+#We don't necessarily want to change the original column so we can create a new variable without the NA.
+#mutate is easy to use, 
+# we just choose a variable name and define how to create this variable        
+##===============================================================
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+movie_replace <- movie %>%
+  mutate(replace_mean_Year  = ifelse(is.na(Year), average_missing[1], Year),
+         replace_mean_Sequel = ifelse(is.na(Sequel), average_missing[2], Sequel),
+         replace_mean_Sentiment = ifelse(is.na(Sentiment), average_missing[3], Sentiment),
+         replace_mean_Genre = ifelse(is.na(Genre), average_missing[4], Genre),
+         replace_mean_Ratings  = ifelse(is.na(Ratings), average_missing[5],Ratings),
+         replace_mean_Gross  = ifelse(is.na(Gross), average_missing[6], Gross),
+         replace_mean_Budget  = ifelse(is.na(Budget), average_missing[7], Budget),
+         replace_mean_Screens  = ifelse(is.na(Screens), average_missing[8], Screens),
+         replace_mean_Views  = ifelse(is.na(Views), average_missing[9], Views),
+         replace_mean_Likes  = ifelse(is.na(Likes), average_missing[10],Likes),
+         replace_mean_Dislikes = ifelse(is.na(Dislikes), average_missing[11],Dislikes),
+         replace_mean_Comments = ifelse(is.na(Comments), average_missing[12], Comments),
+         replace_mean_Aggregate_Followers  = ifelse(is.na(Aggregate_Followers), 
+                                              average_missing[13], Aggregate_Followers))
+```
+
+#  Perform the replacement ------------------------------------------------
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+sum(is.na(movie_replace$Year))
+sum(is.na(movie_replace$Sequel))
+sum(is.na(movie_replace$Sentiment))
+sum(is.na(movie_replace$Genre))
+sum(is.na(movie_replace$Ratings))
+sum(is.na(movie_replace$Gross))
+sum(is.na(movie_replace$ Budget))
+sum(is.na(movie_replace$ Screens))
+sum(is.na(movie_replace$ Views))
+sum(is.na(movie_replace$Likes))
+sum(is.na(movie_replace$Dislikes))
+sum(is.na(movie_replace$Comments))
+sum(is.na(movie_replace$Aggregate_Followers))
+
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+sum(is.na(movie_replace$replace_mean_Aggregate_Followers))
+```
+## My new Data.
+# Here I created a new frame for the data that  do not  contain  na values 
+# Select all columns that  do not  contain  na values from a data  by names --------
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+new_movie<- movie_replace %>%
+  select(replace_mean_Year, replace_mean_Sequel,replace_mean_Sentiment,replace_mean_Genre,replace_mean_Ratings,
+      replace_mean_Gross,replace_mean_Budget,replace_mean_Screens,replace_mean_Views,
+   replace_mean_Likes,replace_mean_Dislikes,replace_mean_Comments,replace_mean_Aggregate_Followers)
+view(new_movie) 
+sum(is.na(new_movie))
+```
+
+# Select all columns that  do not  contain  na values from a data by index --------
+```{r}
+new_movie<- movie_replace  %>% select(15:27)
+sum(is.na(new_movie))
+```
+
+#  Other Ways of replace the NA Values ------------------------------------
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+
+new_movie<- data.frame(
+  sapply(
+    movie,
+    function(x) ifelse(is.na(x),
+                       mean(x, na.rm = TRUE),
+                       x)))
+new_movie
+sum(is.na(new_movie))
+```
+
+
+#txt <- "Explore the data set"
+#banner(txt, centre = TRUE, bandChar = "-")
+##----------------------------------------------------------------
+##                     Explore the data set                     --
+##----------------------------------------------------------------
+
+#txt <- "Data contents"
+#banner(txt, centre = TRUE, bandChar = "=")
+##===============================================================
+##                        Data contents                        ==
+##===============================================================
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+Hmisc::contents(new_movie)
+psych::describe(new_movie, skew = TRUE, 
+                IQR = TRUE)
+glimpse(new_movie)
+
+head(new_movie, 10)
+
+tail(new_movie)
+
+car::brief(new_movie)
+str(new_movie)
+```
+
+
+# We have 232 obs. of  14 variables
+
+##================================================================
+##                EDA: Exploratory Data Analysis                ==
+##================================================================
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+movie_data <- new_movie[,6:ncol(new_movie)]
+```
+
+
+# Check the column names again, 
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+colnames(movie_data)
+```
+#txt <- "Get the summary statistics of the variables"
+#banner(txt, centre = TRUE, bandChar = "*")
+##***************************************************************
+##         Get the summary statistics of the variables         **
+##***************************************************************
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+summary(movie_data)
+Hmisc::describe(movie_data)
+psych::describe(movie_data, skew = TRUE, 
+                IQR = TRUE)
+```
+
+
+
+
+#txt <- "The Dependent Variables in this study is  Ratings"
+#banner(txt, centre = TRUE, bandChar = ":")
+
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##  The Dependent Variables in this study is  Ratings "replace_mean_Ratings" ::
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+# We are going to explore the distribution of this variable
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+movie_replace
+View(movie_replace)
+movie_data <- movie_replace[,19:ncol(movie_replace)]
+View(movie_data)
+colnames(movie_data)
+ggplot(movie_data, aes(x = replace_mean_Ratings)) + 
+  geom_histogram(aes(y = ..density..), 
+                 fill = "steelblue") +
+  geom_density(color = "red", lwd = 1.2) + 
+  stat_function(fun = dnorm, args = list(mean = mean(movie_data$replace_mean_Ratings), 
+                                         sd = sd(movie_data$replace_mean_Ratings)),
+                color = "orange", lwd = 1.2) +
+  theme_linedraw()
+
+```
+
+
+#################################################################
+##                        Joint Graphs                         ##
+#################################################################
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+library(WVPlots)
+```
+
+#replace_mean_Ratings VS  replace_mean_Budget
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+ScatterHist(movie_data, title = "replace_mean_Ratings VS  replace_mean_Budget", 
+            xvar = "replace_mean_Budget", yvar = "replace_mean_Ratings", 
+            smoothmethod = "lm")
+```
+## There is  a positive  linear relationshipbetween the variables(replace_mean_Ratings & replace_mean_Budget)
+#replace_mean_Ratings VS  replace_mean_Gross
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+ScatterHist(movie_data, title = "replace_mean_Ratings VS  replace_mean_Gross", 
+            xvar = "replace_mean_Gross", yvar = "replace_mean_Ratings", 
+            smoothmethod = "lm")
+```
+## There is  a positive  linear relationshipbetween the variables(replace_mean_Ratings & replace_mean_Gross)
+
+# replace_mean_Ratings VS replace_mean_Views 
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+ScatterHist(movie_data, title = "replace_mean_Ratings VS  replace_mean_Views", 
+            xvar = "replace_mean_Views", yvar = "replace_mean_Ratings", 
+            smoothmethod = "lm")
+```
+
+
+# There is a very weak relationship between the variables(replace_mean_Ratings & replace_mean_Views )
+
+# replace_mean_Ratings VS replace_mean_Dislikes 
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+ScatterHist(movie_data, title = "replace_mean_Ratings VS  replace_mean_Dislikes", 
+            xvar = "replace_mean_Dislikes", yvar = "replace_mean_Ratings", 
+            smoothmethod = "lm")
+```
+
+
+# There is a negative linear relationship between the variables(replace_mean_Ratings & replace_mean_Dislikes )
+
+
+# replace_mean_Ratings VS replace_mean_Likes
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+ScatterHist(movie_data, title = "replace_mean_Ratings VS  replace_mean_Likes", 
+            xvar = "replace_mean_Likes", yvar = "replace_mean_Ratings", 
+            smoothmethod = "lm", hist_color = "#00ACBB", 
+            point_alpha = 0.3, 
+            point_color = "#FF00CC")
+```
+
+# There is  a positive linear relationship between the variables (replace_mean_Ratings & replace_mean_Likes)
+
+# replace_mean_Dislikes VS replace_mean_Likes
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+ScatterHist(movie_data, title = "replace_mean_Dislikes VS  replace_mean_Likes", 
+            xvar = "replace_mean_Likes", yvar = "replace_mean_Dislikes", 
+            smoothmethod = "lm", hist_color = "#00ACBB", 
+            point_alpha = 0.3, 
+            point_color = "#FF00CC")
+```
+
+# There is  a positive linear relationship between the variables (replace_mean_Dislikes & replace_mean_Likes)
+
+##***************************************************************
+##                    Study the correlation                    **
+##***************************************************************
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+psych::lowerCor(x = movie_data)
+psych::corr.test(movie_data)$p
+```
+
+
+# Plotting the ScatterPlotMatrix
+# First look at the help, and the arguments 
+# I am going to tweak the knobs a little
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+pairs(movie_data)  
+```
+
+#change the color and get halp matrix
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+pairs(movie_data, lower.panel = NULL, col= "blue")
+```
+
+# Or if you want only the lower part matrix
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+pairs(movie_data, upper.panel = NULL, col= "blue")
+```
+
+# Check the documentation for more information
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+?pairs
+```
+
+# Scatter Matrix with psych package
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+library(psych)
+pairs.panels(movie_data, 
+             method = "pearson", # Correlation method
+             hist.col = "#11AACC",
+             density = TRUE, 
+             cex.cor = 1.3, 
+             col = "red", 
+             lm = TRUE, 
+             pch = 25,    # point character
+             bg = "cyan") # background
+```
+
+# Scatter Matrix with car package
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+car::scatterplotMatrix(movie_data, 
+                       col = "steelblue", 
+                       pch = 21, 
+                       upper.panel = NULL)
+```
+
+
+# Lastly
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+
+library(PerformanceAnalytics)
+chart.Correlation(movie_data, 
+                  histogram=TRUE,
+                  pch=19, 
+                  col = "blue")
+
+```
+
+
+##***************************************************************
+##                  correlation plot matrices                  **
+##***************************************************************
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+correl <- cor(movie_data)
+
+psych::cor.plot(correl)
+
+corrplot::corrplot(correl)
+```
+
+# Tweak the knobs
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+
+corrplot(correl, type = "upper", 
+         order = "hclust", 
+         tl.col = "black",
+         tl.srt = 45)
+```
+
+# check 
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+?corrplot
+```
+
+# Heatmap 
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+heatmap(correl, symm = TRUE, 
+        cexRow = 0.7, 
+        cexCol = 0.7)
+```
+
+# ggcorrplot
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+p <- ggcorrplot::ggcorrplot(correl, 
+                            method = "circle", 
+                            type = "lower", 
+                            ggtheme = ggplot2::theme_linedraw, 
+                            lab_col = "blue", 
+                            lab_size = 3,
+                            tl.cex = 10, 
+                            lab = TRUE, 
+                            pch.cex = 10, 
+                            colors = c("#6D9EC1", "white", "#E46726")) 
+p
+p + guides(scale = "none")
+```
+
+##----------------------------------------------------------------
+##               Fitting Multiple Regression                    --
+##----------------------------------------------------------------
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+
+model <- lm(replace_mean_Ratings ~ replace_mean_Gross+ replace_mean_Budget+replace_mean_Screens+
+            replace_mean_Views+  replace_mean_Likes+replace_mean_Dislikes+replace_mean_Comments+
+              replace_mean_Aggregate_Followers, data = movie_data)
+model
+influencePlot(model)
+```
+
+##---------------------------------------------------------------
+##                     Checking lm objects                     --
+##---------------------------------------------------------------
+# Show the components of lm object
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+str(model)
+class(model)
+typeof(model)
+length(model)
+names(model)
+```
+
+# Summary Function
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+summary(model)
+```
+
+# Coefficients Function
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+model$coefficients
+```
+
+# Fitted function
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+model$fitted
+extract_eq(model,use_cof=TRUE) 
+par(mfrow = c(2, 2))
+plot(model)
+vif(model)
+```
+
+## We will improve our result by removing the outlier
+##create a boxplot to identify   outliers
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+boxplot(movie_data$replace_mean_Ratings)
+boxplot(movie_data$replace_mean_Gross)
+boxplot(movie_data$replace_mean_Budget)
+boxplot(movie_data$replace_mean_Screens)
+boxplot(movie_data$replace_mean_Views)
+boxplot(movie_data$replace_mean_Likes)
+boxplot(movie_data$replace_mean_Dislikes)
+boxplot(movie_data$replace_mean_Comments)
+boxplot(movie_data$replace_mean_Aggregate_Followers)
+boxplot(movie_data)
+boxplot(movie_data)$out
+```
+
+###How to Remove Outliers from Multiple Columns in R
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+cooksd<-cooks.distance((model))
+
+plot(cooksd,pch="*",cex=1,main="Influential obs by cooks distance")
+
+cooksd
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+influential<-cooksd[(cooksd>(3*mean(cooksd,na.rm=TRUE)))]
+
+names_of_influential<-names(influential)
+names_of_influential
+outliers <- movie_data[names_of_influential,]
+movie_data_without_outliers <-movie_data %>% anti_join(outliers)
+movie_data_without_outliers
+
+```
+
+
+
+
+#  Other Ways of Removing Outliers ----------------------------------------
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+
+outliers <- function(x) {
+  
+  Q1 <- quantile(x, probs=.25)
+  Q3 <- quantile(x, probs=.75)
+  iqr = Q3-Q1
+  
+  upper_limit = Q3 + (iqr*1.5)
+  lower_limit = Q1 - (iqr*1.5)
+  
+  x > upper_limit | x < lower_limit
+}
+
+remove_outliers <- function(movie_data, cols = names(movie_data)) {
+  for (col in cols) {
+    movie_data <- movie_data[!outliers(movie_data[[col]]),]
+  }
+  movie_data
+}
+
+movie_data_without_outliers <- remove_outliers(movie_data)
+boxplot(movie_data_without_outliers)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+mode2 <- lm(replace_mean_Ratings ~  replace_mean_Gross+replace_mean_Budget+
+      replace_mean_Screens+replace_mean_Views+replace_mean_Likes+
+      replace_mean_Dislikes+replace_mean_Comments+
+      replace_mean_Aggregate_Followers, data = movie_data_without_outliers)
+mode2
+summary(mode2)
+```
+
+
+
+##mode2
+
+# Coefficients Function &  Fitted function
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+mode2$coefficients
+mode2$fitted
+extract_eq(mode2,use_cof=TRUE) 
+par(mfrow = c(2, 2))
+plot(mode2)
+```
+
+#### We can see here,that the coefficient is different between our new model and our previous model 
+## Also, after removing the outlier from our dataset the residual standard error is decreasing, while the R_ squared is increasing
+## It means that our new model fits better to our data compared to the previous model
+## VIF for new model
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+vif(mode2)
+glance(mode2)
+tidy(mode2)
+```
+
+
+
+## vif<10 for all variables the model good.
+
+
+###*************************************************************************
+###*************************************************************************
+###                                                                      ***
+###                          SPLITTING THE DATA                          ***
+###                        TRAINING AND TEST SETS                        ***
+###                                                                      ***
+###*************************************************************************
+###*************************************************************************
+###*
+
+# Let's say we want to split the data in 80:20 for train :test dataset
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+set.seed(232)
+ind <- createDataPartition(movie_data$ replace_mean_Ratings, 
+                           p = 0.8, times = 1, list = FALSE)
+length(ind)
+train_set <- movie_data[ind, ]
+test_set <- movie_data[-ind, ]
+nrow(train_set); nrow(test_set)
+```
+
+
+# Training the model ------------------------------------------------------
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+lm_fit <- lm(replace_mean_Ratings ~ . , data = train_set)
+broom::tidy(lm_fit)
+broom::glance(lm_fit)
+```
+
+
+
+# We've built a machine learning model and trained it on train_set
+
+###*  *** Prediction ***
+#     --------------------
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+pred <- predict(object = lm_fit, newdata = test_set, type = "response") 
+
+head(pred)
+```
+
+
+
+###       **** Model Evaluation ***
+#         -------------------------
+```{r echo=TRUE, message=FALSE, warning=FALSE, include=TRUE}
+actual <- test_set$replace_mean_Ratings
+mae <- Metrics::mae(actual = actual, predicted = pred)
+mse <- Metrics::mse(actual = actual, predicted = pred)
+rmse <- Metrics::rmse(actual = actual, predicted = pred)
+
+```
+
+
+# These common metrics are used to evaluate the model.
+
+
+# Table of results
+```{r}
+knitr::kable(cbind(mae, mse, rmse))
+```
+
+
+
+
